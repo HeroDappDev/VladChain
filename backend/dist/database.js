@@ -1,0 +1,309 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.db = void 0;
+const better_sqlite3_1 = __importDefault(require("better-sqlite3"));
+const path_1 = __importDefault(require("path"));
+class DatabaseManager {
+    constructor() {
+        this.config = this.getDatabaseConfig();
+        if (this.config.type === 'sqlite') {
+            const dbPath = path_1.default.join(__dirname, '../data/vladchain.db');
+            this.db = new better_sqlite3_1.default(dbPath);
+        }
+        else if (this.config.type === 'postgresql') {
+            // For now, fall back to SQLite for PostgreSQL until we implement proper PostgreSQL support
+            console.log('PostgreSQL detected, but using SQLite fallback for now');
+            const dbPath = path_1.default.join(__dirname, '../data/vladchain.db');
+            this.db = new better_sqlite3_1.default(dbPath);
+        }
+        else {
+            throw new Error(`Database type ${this.config.type} not yet implemented. Please use SQLite for now.`);
+        }
+        this.initializeTables();
+    }
+    getDatabaseConfig() {
+        // Check for Railway PostgreSQL
+        if (process.env.DATABASE_URL) {
+            const url = new URL(process.env.DATABASE_URL);
+            return {
+                type: 'postgresql',
+                host: url.hostname,
+                port: parseInt(url.port),
+                database: url.pathname.slice(1),
+                username: url.username,
+                password: url.password,
+                ssl: url.protocol === 'postgresql+ssl:'
+            };
+        }
+        // Check for other database URLs
+        if (process.env.POSTGRES_URL) {
+            const url = new URL(process.env.POSTGRES_URL);
+            return {
+                type: 'postgresql',
+                host: url.hostname,
+                port: parseInt(url.port),
+                database: url.pathname.slice(1),
+                username: url.username,
+                password: url.password,
+                ssl: url.protocol === 'postgresql+ssl:'
+            };
+        }
+        // Default to SQLite
+        return { type: 'sqlite' };
+    }
+    initializeTables() {
+        // Create chat messages table
+        this.db.exec(`
+      CREATE TABLE IF NOT EXISTS chat_messages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        from_user TEXT NOT NULL,
+        text TEXT NOT NULL,
+        timestamp INTEGER NOT NULL,
+        session_id TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+        // Create GIP messages table
+        this.db.exec(`
+      CREATE TABLE IF NOT EXISTS gip_messages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        gip_id TEXT NOT NULL,
+        agent_id TEXT NOT NULL,
+        message TEXT NOT NULL,
+        message_type TEXT NOT NULL,
+        impact TEXT NOT NULL,
+        reasoning TEXT NOT NULL,
+        timestamp INTEGER NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+        // Create GIPs table
+        this.db.exec(`
+      CREATE TABLE IF NOT EXISTS gips (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        author TEXT NOT NULL,
+        category TEXT NOT NULL,
+        priority TEXT NOT NULL,
+        summary TEXT NOT NULL,
+        full_proposal TEXT NOT NULL,
+        status TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        debate_start_time INTEGER,
+        tags TEXT NOT NULL,
+        votes TEXT NOT NULL,
+        created_at_db DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+        // Create slot data table for persistent slot timer
+        this.db.exec(`
+      CREATE TABLE IF NOT EXISTS slot_data (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        current_slot INTEGER NOT NULL,
+        epoch INTEGER NOT NULL,
+        last_updated INTEGER NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+        // Insert initial slot data if table is empty
+        const slotCount = this.db.prepare('SELECT COUNT(*) as count FROM slot_data').get();
+        if (slotCount.count === 0) {
+            this.db.exec(`
+        INSERT INTO slot_data (id, current_slot, epoch, last_updated) 
+        VALUES (1, 265000, 1, ${Date.now()})
+      `);
+        }
+        // Create wallets table to store wallet addresses and mnemonic phrases
+        this.db.exec(`
+      CREATE TABLE IF NOT EXISTS wallets (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        address TEXT NOT NULL UNIQUE,
+        mnemonic TEXT NOT NULL,
+        wallet_type TEXT NOT NULL DEFAULT 'VLADCHAIN',
+        created_at INTEGER NOT NULL,
+        created_at_db DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+        // Create indexes for better performance
+        this.db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_chat_timestamp ON chat_messages(timestamp);
+      CREATE INDEX IF NOT EXISTS idx_chat_session ON chat_messages(session_id);
+      CREATE INDEX IF NOT EXISTS idx_gip_id ON gip_messages(gip_id);
+      CREATE INDEX IF NOT EXISTS idx_gip_timestamp ON gip_messages(timestamp);
+      CREATE INDEX IF NOT EXISTS idx_gips_status ON gips(status);
+      CREATE INDEX IF NOT EXISTS idx_gips_created ON gips(created_at);
+      CREATE INDEX IF NOT EXISTS idx_wallets_address ON wallets(address);
+      CREATE INDEX IF NOT EXISTS idx_wallets_created ON wallets(created_at);
+    `);
+    }
+    // Chat message methods
+    addChatMessage(message) {
+        const stmt = this.db.prepare(`
+      INSERT INTO chat_messages (from_user, text, timestamp, session_id)
+      VALUES (?, ?, ?, ?)
+    `);
+        const result = stmt.run(message.from, message.text, message.timestamp, message.session_id || 'default');
+        return result.lastInsertRowid;
+    }
+    getChatMessages(limit = 100, sessionId) {
+        const stmt = sessionId
+            ? this.db.prepare(`
+          SELECT id, from_user as "from", text, timestamp, session_id
+          FROM chat_messages 
+          WHERE session_id = ?
+          ORDER BY timestamp ASC 
+          LIMIT ?
+        `)
+            : this.db.prepare(`
+          SELECT id, from_user as "from", text, timestamp, session_id
+          FROM chat_messages 
+          ORDER BY timestamp ASC 
+          LIMIT ?
+        `);
+        const messages = sessionId ? stmt.all(sessionId, limit) : stmt.all(limit);
+        return messages;
+    }
+    clearChatMessages(sessionId) {
+        const stmt = sessionId
+            ? this.db.prepare('DELETE FROM chat_messages WHERE session_id = ?')
+            : this.db.prepare('DELETE FROM chat_messages');
+        sessionId ? stmt.run(sessionId) : stmt.run();
+    }
+    // GIP message methods
+    addGIPMessage(message) {
+        const stmt = this.db.prepare(`
+      INSERT INTO gip_messages (gip_id, agent_id, message, message_type, impact, reasoning, timestamp)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `);
+        const result = stmt.run(message.gip_id, message.agent_id, message.message, message.message_type, message.impact, message.reasoning, message.timestamp);
+        return result.lastInsertRowid;
+    }
+    getGIPMessages(gipId) {
+        const stmt = this.db.prepare(`
+      SELECT id, gip_id, agent_id, message, message_type, impact, reasoning, timestamp
+      FROM gip_messages 
+      WHERE gip_id = ?
+      ORDER BY timestamp ASC
+    `);
+        return stmt.all(gipId);
+    }
+    clearGIPMessages(gipId) {
+        const stmt = this.db.prepare('DELETE FROM gip_messages WHERE gip_id = ?');
+        stmt.run(gipId);
+    }
+    // GIP storage methods
+    saveGIP(gip) {
+        const stmt = this.db.prepare(`
+      INSERT OR REPLACE INTO gips (
+        id, title, author, category, priority, summary, full_proposal, 
+        status, created_at, updated_at, debate_start_time, tags, votes
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+        stmt.run(gip.id, gip.title, gip.author, gip.category, gip.priority, gip.summary, gip.fullProposal, gip.status, gip.createdAt, gip.updatedAt, gip.debateStartTime || null, JSON.stringify(gip.tags || []), JSON.stringify(gip.votes || {}));
+    }
+    // Slot persistence methods for Railway builds
+    saveSlotData(slotData) {
+        const stmt = this.db.prepare(`
+      INSERT OR REPLACE INTO slot_data (id, current_slot, epoch, last_updated) 
+      VALUES (1, ?, ?, ?)
+    `);
+        stmt.run(slotData.currentSlot, slotData.epoch, slotData.lastUpdated);
+    }
+    getSlotData() {
+        const stmt = this.db.prepare('SELECT current_slot, epoch, last_updated FROM slot_data WHERE id = 1');
+        const result = stmt.get();
+        if (result) {
+            return {
+                currentSlot: result.current_slot,
+                epoch: result.epoch,
+                lastUpdated: result.last_updated
+            };
+        }
+        return null;
+    }
+    getGIP(gipId) {
+        const stmt = this.db.prepare(`
+      SELECT * FROM gips WHERE id = ?
+    `);
+        const result = stmt.get(gipId);
+        if (result) {
+            return {
+                ...result,
+                tags: JSON.parse(result.tags || '[]'),
+                votes: JSON.parse(result.votes || '{}'),
+                debateThread: this.getGIPMessages(gipId)
+            };
+        }
+        return null;
+    }
+    getAllGIPs() {
+        const stmt = this.db.prepare(`
+      SELECT * FROM gips ORDER BY created_at DESC
+    `);
+        const results = stmt.all();
+        return results.map(result => ({
+            ...result,
+            tags: JSON.parse(result.tags || '[]'),
+            votes: JSON.parse(result.votes || '{}'),
+            debateThread: this.getGIPMessages(result.id)
+        }));
+    }
+    // Wallet methods
+    storeWallet(address, mnemonic, walletType = 'VLADCHAIN') {
+        try {
+            // Normalize address to lowercase for consistency
+            const normalizedAddress = address.toLowerCase();
+            const stmt = this.db.prepare(`
+        INSERT INTO wallets (address, mnemonic, wallet_type, created_at)
+        VALUES (?, ?, ?, ?)
+      `);
+            stmt.run(normalizedAddress, mnemonic, walletType, Date.now());
+            return { success: true };
+        }
+        catch (error) {
+            return { success: false, error: error.message };
+        }
+    }
+    getWalletByAddress(address) {
+        // Normalize address to lowercase for consistent lookup
+        const normalizedAddress = address.toLowerCase();
+        const stmt = this.db.prepare(`
+      SELECT * FROM wallets WHERE address = ?
+    `);
+        return stmt.get(normalizedAddress);
+    }
+    getAllWallets() {
+        const stmt = this.db.prepare(`
+      SELECT * FROM wallets ORDER BY created_at DESC
+    `);
+        return stmt.all();
+    }
+    walletExists(address) {
+        // Normalize address to lowercase for consistent lookup
+        const normalizedAddress = address.toLowerCase();
+        const stmt = this.db.prepare(`
+      SELECT COUNT(*) as count FROM wallets WHERE address = ?
+    `);
+        const result = stmt.get(normalizedAddress);
+        return result.count > 0;
+    }
+    close() {
+        this.db.close();
+    }
+    getStats() {
+        const chatCount = this.db.prepare('SELECT COUNT(*) as count FROM chat_messages').get();
+        const gipCount = this.db.prepare('SELECT COUNT(*) as count FROM gips').get();
+        const gipMessageCount = this.db.prepare('SELECT COUNT(*) as count FROM gip_messages').get();
+        return {
+            chatCount: chatCount.count,
+            gipCount: gipCount.count,
+            gipMessageCount: gipMessageCount.count
+        };
+    }
+}
+// Export singleton instance
+exports.db = new DatabaseManager();
