@@ -1,151 +1,55 @@
 # Security Policy
 
-## Supported Versions
-
-We actively maintain security for the following versions:
-
-| Version | Supported          |
-| ------- | ------------------ |
-| 1.0.x   | :white_check_mark: |
-| 0.9.x   | :white_check_mark: |
-| 0.8.x   | :x:                |
-| < 0.8   | :x:                |
+VLADCHAIN is an experimental blockchain simulation. It does not hold real funds,
+custody real assets, or process payments. Even so, we want the code and the
+hosted demo to be safe, and we appreciate responsible reports.
 
 ## Reporting a Vulnerability
-
-We take security vulnerabilities seriously. If you discover a security issue, please follow these steps:
 
 ### 1. **DO NOT** create a public GitHub issue
 Security vulnerabilities should be reported privately to prevent exploitation.
 
 ### 2. Report privately via GitHub Security Advisories
-Use the repository's "Security" tab → "Report a vulnerability" to reach the maintainers privately. Include the following information:
-- **Type of issue** (buffer overflow, SQL injection, cross-site scripting, etc.)
-- **Full paths of source file(s) related to the vulnerability**
-- **The location of the affected source code (tag/branch/commit or direct URL)**
-- **Any special configuration required to reproduce the issue**
+Use the repository's "Security" tab → "Report a vulnerability" to reach the
+maintainers privately. Where possible, include:
+- **Type of issue** (injection, XSS, auth bypass, etc.)
+- **Affected source file(s)** and location (branch/commit or direct URL)
 - **Step-by-step instructions to reproduce the issue**
-- **Proof-of-concept or exploit code (if possible)**
+- **Proof-of-concept (if possible)**
 - **Impact of the issue, including how an attacker might exploit it**
 
 ### 3. What to expect
-- **Initial Response**: Within 48 hours
-- **Status Updates**: Regular updates on progress
-- **Resolution**: Public disclosure after fix is deployed
+This is a small open-source project — there is no dedicated security team or
+guaranteed response SLA. We will acknowledge reports as quickly as we can,
+fix confirmed issues, and credit reporters (with permission) once a fix ships.
 
-## Security Features
+## Security Measures in the Codebase
 
-### Blockchain Security
-- **Cryptographic Integrity**: SHA-256 hashing for block integrity
-- **Digital Signatures**: ECDSA for transaction authentication
-- **Consensus Security**: Byzantine fault tolerance with AI validation
-- **Double-Spending Protection**: Real-time transaction validation
-- **51% Attack Prevention**: Distributed validator network
+What is actually implemented today:
 
-### AI Security
-- **Model Validation**: AI model integrity verification
-- **Adversarial Training**: Protection against AI manipulation
-- **Bias Detection**: Automated bias detection and mitigation
-- **Explainable AI**: Transparent decision-making processes
-- **Secure AI APIs**: Rate limiting and authentication
+- **Input validation** on transaction and account API endpoints
+- **Faucet rate limiting** (cooldown plus daily caps) to prevent abuse
+- **Parameterized SQL queries** via better-sqlite3
+- **Secrets kept in environment variables**, never committed to the repository
+- **Admin endpoints protected** by authentication
+- **No real funds at risk** — wallets and balances are simulated
 
-### Network Security
-- **DDoS Protection**: Rate limiting and traffic filtering
-- **Man-in-the-Middle Protection**: TLS 1.3 encryption
-- **API Security**: JWT authentication and authorization
-- **Input Validation**: Comprehensive input sanitization
-- **SQL Injection Prevention**: Parameterized queries
+## Scope Notes
 
-### Smart Contract Security
-- **Formal Verification**: Mathematical proof of contract correctness
-- **Static Analysis**: Automated vulnerability detection
-- **Audit Trail**: Complete transaction history
-- **Emergency Pause**: Ability to pause contracts if needed
-- **Upgrade Mechanisms**: Secure contract upgrade patterns
+- Simulated wallet mnemonics are stored server-side for the demo. Do not reuse
+  them anywhere real.
+- The AI validators are LLM-driven personas; their output is displayed content,
+  not a consensus security mechanism.
 
-## Security Best Practices
+## Responsible Disclosure
 
-### For Developers
-1. **Keep Dependencies Updated**: Regularly update all dependencies
-2. **Code Review**: All code changes require security review
-3. **Testing**: Comprehensive security testing before deployment
-4. **Principle of Least Privilege**: Minimal required permissions
-5. **Secure Coding**: Follow OWASP guidelines
-
-### For Users
-1. **Secure Wallets**: Use hardware wallets for large amounts
-2. **Private Key Security**: Never share private keys
-3. **Phishing Awareness**: Verify URLs and sources
-4. **Regular Updates**: Keep software updated
-5. **Backup Security**: Secure backup of wallet data
-
-## Security Audits
-
-### External Audits
-We conduct regular security audits with leading firms:
-- **Smart Contract Audits**: Annual comprehensive audits
-- **Penetration Testing**: Quarterly security assessments
-- **Code Reviews**: Continuous security code review
-- **Infrastructure Audits**: Regular infrastructure security checks
-
-
-
-## Incident Response
-
-### Response Team
-- **Security Lead**: Coordinates response efforts
-- **Technical Lead**: Implements security fixes
-- **Communications Lead**: Manages public disclosure
-- **Legal Lead**: Ensures compliance and liability management
-
-### Response Timeline
-1. **Detection** (0-1 hour): Identify and assess the incident
-2. **Containment** (1-4 hours): Isolate affected systems
-3. **Eradication** (4-24 hours): Remove the threat
-4. **Recovery** (24-72 hours): Restore normal operations
-5. **Post-Incident** (1-2 weeks): Analysis and improvements
-
-## Compliance
-
-### Standards
-- **ISO 27001**: Information security management
-- **SOC 2 Type II**: Security, availability, and confidentiality
-- **GDPR**: Data protection and privacy
-- **PCI DSS**: Payment card industry security
-
-### Certifications
-- **Blockchain Security**: Industry-standard security practices
-- **AI Ethics**: Responsible AI development
-- **Cryptography**: FIPS 140-2 compliant algorithms
-
-## Contact Information
-
-### Security Team
-- **Private reports**: GitHub Security Advisories on this repository
-- **General questions**: open a GitHub issue (no sensitive details)
-
-### Responsible Disclosure
 We follow responsible disclosure practices:
 1. **Private Reporting**: Vulnerabilities reported privately
-2. **Timely Response**: Quick acknowledgment and assessment
-3. **Collaborative Fix**: Work with reporters on solutions
-4. **Public Credit**: Acknowledge contributors (with permission)
-5. **No Legal Action**: Good faith security research protected
-
-## Security Updates
-
-### Regular Updates
-- **Security Patches**: Monthly security updates
-- **Vulnerability Database**: Public vulnerability database
-- **Security Advisories**: Timely security notifications
-- **Best Practices**: Regular security guidance updates
-
-### Monitoring
-- **24/7 Monitoring**: Continuous security monitoring
-- **Threat Intelligence**: Real-time threat detection
-- **Anomaly Detection**: AI-powered security monitoring
-- **Incident Response**: Automated incident response
+2. **Collaborative Fix**: Work with reporters on solutions
+3. **Public Credit**: Acknowledge contributors (with permission)
+4. **No Legal Action**: Good faith security research is welcome
 
 ## Acknowledgments
 
-We thank the security researchers and community members who help keep VladChain secure through responsible disclosure and security research.
+We thank the security researchers and community members who help keep
+VladChain secure through responsible disclosure and security research.
