@@ -171,6 +171,133 @@ body {
   }
 }
 
+/* RWA Layer 3 story section */
+.rwa-story {
+  max-width: 900px;
+  margin: 30px auto 40px;
+  padding: 0 15px;
+  font-family: 'JetBrains Mono', monospace;
+  text-align: left;
+}
+
+.rwa-story-section {
+  border: 1px solid #333;
+  background: rgba(203, 250, 3, 0.02);
+  padding: 18px 20px;
+  margin-bottom: 18px;
+}
+
+.rwa-story-title {
+  color: #CBFA03;
+  font-size: 13px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+}
+
+.rwa-story-text {
+  color: #cccccc;
+  font-size: 12px;
+  line-height: 1.7;
+  margin: 0;
+}
+
+.rwa-ticker {
+  color: #CBFA03;
+  font-weight: bold;
+}
+
+.rwa-pillars {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.rwa-pillar {
+  border: 1px solid #222;
+  padding: 12px 14px;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.rwa-pillar-head {
+  color: #CBFA03;
+  font-size: 11px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+}
+
+.rwa-pillar-body {
+  color: #cccccc;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.rwa-numbers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.rwa-number {
+  flex: 1 1 120px;
+  border: 1px solid #222;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 12px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rwa-number-value {
+  color: #CBFA03;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.rwa-number-label {
+  color: #999;
+  font-size: 9px;
+  letter-spacing: 1px;
+}
+
+.rwa-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.rwa-cta {
+  background: transparent;
+  border: 1px solid #CBFA03;
+  color: #CBFA03;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: bold;
+  padding: 8px 14px;
+  cursor: pointer;
+  letter-spacing: 1px;
+}
+
+.rwa-cta:hover {
+  background: #CBFA03;
+  color: #000000;
+}
+
+@media (max-width: 768px) {
+  .rwa-pillars {
+    grid-template-columns: 1fr;
+  }
+  .rwa-story-section {
+    padding: 14px;
+  }
+  .rwa-cta-row {
+    flex-direction: column;
+  }
+}
+
 /* Terminal cursor blink */
 @keyframes blink {
   0%, 50% { opacity: 1; }

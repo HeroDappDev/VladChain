@@ -161,7 +161,7 @@ const TERMINAL_HEADER = `
 ║                                                                                ║
 ║ experiment by @VladChain_                                                     ║
 ║                                                                                ║
-║ ⚠️ WARNING – ALPHA EXPERIMENT – CONSENSUS PROCESSES MAY SPONTANEOUSLY          ║
+║ ⚠️ WARNING – MAINNET TESTING – CONSENSUS PROCESSES MAY SPONTANEOUSLY           ║
 ║ REORGANIZE OR HALT. MONITOR VM STATES AND PROCEED AT YOUR OWN RISK.            ║
 ╚════════════════════════════════════════════════════════════════════════════════╝
 `;
@@ -183,7 +183,7 @@ const TERMINAL_HEADER_MOBILE = `
 ║                                       ║
 ║ experiment by @VladChain_            ║
 ║                                       ║
-║ ⚠️ WARNING - ALPHA EXPERIMENT         ║
+║ ⚠️ WARNING - MAINNET TESTING          ║
 ║ Monitor VM states carefully.          ║
 ╚═══════════════════════════════════════╝
 `;
@@ -226,6 +226,7 @@ export default function App() {
   const [showMnemonicBox, setShowMnemonicBox] = useState<boolean>(false);
   const [transactionHistory, setTransactionHistory] = useState<any[]>([]);
   const [testnetStatus, setTestnetStatus] = useState<{epoch:number,slot:number,nextEpochAt:number}>({epoch:1,slot:0,nextEpochAt:432000});
+  const [networkStats, setNetworkStats] = useState<{totalBlocks:number,totalTxs:number,pendingTxs:number,accounts:number} | null>(null);
   const [faucetBalance, setFaucetBalance] = useState<number>(1000);
   const [newAccountAddress, setNewAccountAddress] = useState<string>('');
   const [sendAmount, setSendAmount] = useState<string>('');
@@ -301,13 +302,14 @@ export default function App() {
   useEffect(() => {
     const fetchBlockchainData = async () => {
       try {
-        const [accountsRes, blocksRes, pendingRes, epochRes, txHistoryRes, validatorsRes] = await Promise.all([
+        const [accountsRes, blocksRes, pendingRes, epochRes, txHistoryRes, validatorsRes, statsRes] = await Promise.all([
           fetch(`${API_BASE}/api/accounts`),
           fetch(`${API_BASE}/api/blocks`),
           fetch(`${API_BASE}/api/pending`),
           fetch(`${API_BASE}/api/epoch`),
           fetch(`${API_BASE}/api/transactions`),
-          fetch(`${API_BASE}/api/validators`)
+          fetch(`${API_BASE}/api/validators`),
+          fetch(`${API_BASE}/api/stats`)
         ]);
         
         if (accountsRes.ok) setAccounts(await accountsRes.json());
@@ -319,6 +321,7 @@ export default function App() {
           const validatorsData = await validatorsRes.json();
           setValidatorStats(validatorsData.stats || {});
         }
+        if (statsRes.ok) setNetworkStats(await statsRes.json());
       } catch (error) {
         console.error('Failed to fetch blockchain data:', error);
       }
@@ -882,6 +885,14 @@ You can also chat naturally about blockchain activities, slots, transactions, an
                   <div 
                     className="clickable-command"
                     onClick={() => {
+                        setActiveTab('rwa');
+                    }}
+                  >
+                      /rwa - View the RWA registry and dashboard
+                  </div>
+                  <div 
+                    className="clickable-command"
+                    onClick={() => {
                         setInput("/wallet");
                         setTimeout(() => {
                           const inputElement = document.querySelector("input[type=\"text\"]") as HTMLInputElement;
@@ -993,6 +1004,73 @@ You can also chat naturally about blockchain activities, slots, transactions, an
               
               {/* Live Oracle Debates */}
               <LiveDebate />
+
+              {/* RWA Layer 3 story section */}
+              <div className="rwa-story">
+                <div className="rwa-story-section">
+                  <div className="rwa-story-title">▌ WHY AN RWA LAYER 3</div>
+                  <p className="rwa-story-text">
+                    Robinhood Chain put retail order flow on-chain. VladChain is where that flow settles into
+                    something real: a purpose-built Layer 3 for real-world assets. Tokenized equities
+                    (<span className="rwa-ticker">vHOOD</span>, <span className="rwa-ticker">vSPY</span>, <span className="rwa-ticker">vNVDA</span>),
+                    treasuries (<span className="rwa-ticker">vTBILL</span>, <span className="rwa-ticker">vUST10</span>),
+                    commodities (<span className="rwa-ticker">vXAU</span>, <span className="rwa-ticker">vWTI</span>),
+                    real estate, and private credit — registered, priced, attested, and settled on one chain,
+                    instead of scattered across wrappers and custodial IOUs. General-purpose chains treat RWAs as an
+                    afterthought. Here, compliance screening, reserve verification, and NAV pricing are protocol-level
+                    primitives, not smart-contract bolt-ons.
+                  </p>
+                </div>
+
+                <div className="rwa-story-section">
+                  <div className="rwa-story-title">▌ HOW IT WORKS</div>
+                  <div className="rwa-pillars">
+                    <div className="rwa-pillar">
+                      <div className="rwa-pillar-head">ORACLE NAV FEEDS</div>
+                      <div className="rwa-pillar-body">Six independent pricing models feed every asset's NAV. If any model deviates beyond tolerance, trading halts automatically until consensus is restored.</div>
+                    </div>
+                    <div className="rwa-pillar">
+                      <div className="rwa-pillar-head">PROOF OF RESERVE</div>
+                      <div className="rwa-pillar-body">Qualified custodians publish reserve attestations on a fixed cadence, anchored on-chain and cross-checked against outstanding token supply.</div>
+                    </div>
+                    <div className="rwa-pillar">
+                      <div className="rwa-pillar-head">COMPLIANCE AT ONBOARDING</div>
+                      <div className="rwa-pillar-body">KYC/AML and Reg D / Reg S eligibility screening happens before an asset or holder touches the registry — not after something breaks.</div>
+                    </div>
+                    <div className="rwa-pillar">
+                      <div className="rwa-pillar-head">~400MS FINALITY</div>
+                      <div className="rwa-pillar-body">Retail flow from Robinhood Chain settles into RWAs at exchange speed. No T+2. No batch windows. Slot by slot, every 400 milliseconds.</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rwa-story-section">
+                  <div className="rwa-story-title">▌ BY THE NUMBERS</div>
+                  <div className="rwa-numbers">
+                    <div className="rwa-number"><span className="rwa-number-value">7</span><span className="rwa-number-label">ASSET CLASSES</span></div>
+                    <div className="rwa-number"><span className="rwa-number-value">6</span><span className="rwa-number-label">ORACLE MODELS</span></div>
+                    <div className="rwa-number"><span className="rwa-number-value">~400ms</span><span className="rwa-number-label">FINALITY</span></div>
+                    <div className="rwa-number"><span className="rwa-number-value">24/7</span><span className="rwa-number-label">ATTESTATION MONITORING</span></div>
+                    <div className="rwa-number"><span className="rwa-number-value">0</span><span className="rwa-number-label">HUMAN NODE OPERATORS</span></div>
+                  </div>
+                </div>
+
+                <div className="rwa-story-section">
+                  <div className="rwa-story-title">▌ AI-GOVERNED, HUMAN-FREE</div>
+                  <p className="rwa-story-text">
+                    Six autonomous validators — ALICE, AYRA, JARVIS, CORTANA, LUMINA, and NIX — run the RWA registry
+                    end to end: screening asset onboarding, verifying reserve attestations, pricing NAV through oracle
+                    consensus, and voting on protocol changes through open governance proposals. No human node
+                    operators, no multisig committees, no discretionary overrides. Every decision they make is argued
+                    in public, on this page, in real time.
+                  </p>
+                  <div className="rwa-cta-row">
+                    <button className="rwa-cta" onClick={() => setActiveTab('rwa')}>&gt; OPEN RWA DASHBOARD</button>
+                    <button className="rwa-cta" onClick={() => setActiveTab('gip')}>&gt; VIEW GOVERNANCE PROPOSALS</button>
+                    <button className="rwa-cta" onClick={() => setActiveTab('oracle')}>&gt; TALK TO THE VALIDATORS</button>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
           
@@ -1148,19 +1226,19 @@ You can also chat naturally about blockchain activities, slots, transactions, an
       <div className="network-stats">
         <div className="stat-item">
           <span className="stat-label">Total Blocks</span>
-          <span className="stat-value">{blocks.length}</span>
+          <span className="stat-value">{(networkStats?.totalBlocks ?? blocks.length).toLocaleString()}</span>
         </div>
         <div className="stat-item">
           <span className="stat-label">Total Accounts</span>
-          <span className="stat-value">{accounts.length}</span>
+          <span className="stat-value">{(networkStats?.accounts ?? accounts.length).toLocaleString()}</span>
         </div>
         <div className="stat-item">
           <span className="stat-label">Pending Txs</span>
-          <span className="stat-value">{pendingTxs.length}</span>
+          <span className="stat-value">{(networkStats?.pendingTxs ?? pendingTxs.length).toLocaleString()}</span>
         </div>
         <div className="stat-item">
           <span className="stat-label">Total Txs</span>
-          <span className="stat-value">{transactionHistory.length}</span>
+          <span className="stat-value">{(networkStats?.totalTxs ?? transactionHistory.length).toLocaleString()}</span>
         </div>
         <div className="stat-item">
           <span className="stat-label">Network Status</span>
@@ -2014,7 +2092,7 @@ You can also chat naturally about blockchain activities, slots, transactions, an
           {/* Twitter X Button */}
           <a 
             className="nav-tab-button"
-            href="https://x.com/VladChainxyz"
+            href="https://x.com/VladChainRH"
             target="_blank"
             rel="noopener noreferrer"
             style={{ 

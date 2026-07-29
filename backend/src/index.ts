@@ -118,6 +118,7 @@ function defineExplorerEndpoints(app: any, chain: any) {
 let faucetLimits: Record<string, number> = {};
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
+app.get('/api/stats', (_req, res) => res.json(chain.getNetworkStats()));
 app.get('/api/epoch', (_req, res) => {
   res.json(chain.getEpoch());
 });

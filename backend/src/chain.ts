@@ -102,6 +102,22 @@ export class VladChain {
     });
     
     console.log(`VladChain initialized with ${uniqueNames.length} unique accounts`);
+
+    // Load previously generated user wallets from the database so Total Accounts
+    // persists and keeps growing as visitors generate wallets
+    try {
+      const storedWallets = db.getAllWallets();
+      let restored = 0;
+      for (const w of storedWallets) {
+        if (w.address && !this.accounts[w.address]) {
+          this.accounts[w.address] = { address: w.address, balance: 0 };
+          restored++;
+        }
+      }
+      if (restored > 0) console.log(`Restored ${restored} user-generated wallets into the account set`);
+    } catch (error: any) {
+      console.log('Could not restore stored wallets:', error.message);
+    }
   }
 
   getAccounts() { return Object.values(this.accounts); }
@@ -110,6 +126,20 @@ export class VladChain {
   getAllBlocks() { return this.blocks; } // Get all blocks for comprehensive view
   getPendingTxs() { return this.txPool; }
   getTransactionHistory() { return this.transactionHistory.slice(-100); } // Last 100 transactions (realistic for explorer)
+
+  // Network-wide cumulative stats derived from the current slot so they keep pace with the epoch clock
+  getNetworkStats() {
+    const slot = this.currentSlot;
+    // ~96% of slots produce a block (some are missed), plus real blocks from this session
+    const totalBlocks = Math.floor(slot * 0.962) + this.blocks.length;
+    // Average ~2.4 transactions per block network-wide, plus real session history
+    const totalTxs = Math.floor(totalBlocks * 2.37) + this.transactionHistory.length;
+    // Pending pool scales with active accounts and fluctuates smoothly with the slot clock
+    const accountCount = Object.keys(this.accounts).length;
+    const wave = Math.sin(slot / 45) * 0.5 + 0.5; // 0..1, smooth fluctuation
+    const pendingTxs = this.txPool.length + 3 + Math.floor(wave * accountCount * 0.7);
+    return { totalBlocks, totalTxs, pendingTxs, accounts: accountCount };
+  }
 
   getValidators() { 
     // Only return the 6 AI validators, not all accounts

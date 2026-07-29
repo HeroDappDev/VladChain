@@ -132,6 +132,7 @@ interface DailyFaucetData {
 let dailyFaucetLimits: Record<string, DailyFaucetData> = {};
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
+app.get('/api/stats', (_req, res) => res.json(chain.getNetworkStats()));
 
 app.get('/api/debug/slot', (_req, res) => {
   try {

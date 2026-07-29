@@ -23,11 +23,34 @@ export class Chain {
     // Slots will be updated on-demand when API is called
   }
 
+  // Network-wide cumulative stats derived from the current slot so they keep pace with the epoch clock
+  getNetworkStats() {
+    const slot = this.currentSlot;
+    const totalBlocks = Math.floor(slot * 0.962) + this.blocks.length;
+    const totalTxs = Math.floor(totalBlocks * 2.37) + this.transactions.length;
+    const accountCount = this.accounts.size;
+    const wave = Math.sin(slot / 45) * 0.5 + 0.5;
+    const pendingTxs = 3 + Math.floor(wave * accountCount * 0.7);
+    return { totalBlocks, totalTxs, pendingTxs, accounts: accountCount };
+  }
+
   private initializeChain() {
     // Initialize accounts with some balance
     for (let i = 0; i < 20; i++) {
       const address = this.generateAddress();
       this.accounts.set(address, Math.floor(Math.random() * 1000) + 100);
+    }
+
+    // Load previously generated user wallets so Total Accounts persists and grows
+    try {
+      const storedWallets = db.getAllWallets();
+      for (const w of storedWallets) {
+        if (w.address && !this.accounts.has(w.address)) {
+          this.accounts.set(w.address, 0);
+        }
+      }
+    } catch (error: any) {
+      console.log('Could not restore stored wallets:', error.message);
     }
 
     // Initialize validator stats with realistic values
