@@ -149,8 +149,3 @@ We follow responsible disclosure practices:
 ## Acknowledgments
 
 We thank the security researchers and community members who help keep VladChain secure through responsible disclosure and security research.
-
----
-
-**Last Updated**: January 2024  
-**Next Review**: April 2024 
