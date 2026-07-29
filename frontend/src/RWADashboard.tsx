@@ -149,7 +149,8 @@ export default function RWADashboard() {
               color: classFilter === c ? '#000' : LIME,
               border: `1px solid ${LIME}`,
               borderRadius: '6px',
-              padding: '5px 12px',
+              padding: '10px 14px',
+              minHeight: '44px',
               fontFamily: 'inherit',
               fontSize: '0.78em',
               fontWeight: 'bold',
@@ -164,7 +165,7 @@ export default function RWADashboard() {
 
       {/* Registry table */}
       <div style={{ border: '1px solid rgba(203,250,3,0.2)', borderRadius: '10px', overflow: 'hidden', overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84em', minWidth: '860px' }}>
+        <table className="explorer-data-table rwa-registry-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84em', minWidth: '640px' }}>
           <thead>
             <tr style={{ background: 'rgba(203,250,3,0.07)' }}>
               {['ASSET', 'CLASS', 'PRICE', '24H', 'YIELD', 'TVL', 'COMPLIANCE', 'RESERVES'].map(h => (
@@ -183,25 +184,25 @@ export default function RWADashboard() {
                   borderTop: '1px solid rgba(203,250,3,0.08)',
                 }}
               >
-                <td style={{ padding: '11px 14px' }}>
+                <td data-label="ASSET" style={{ padding: '11px 14px' }}>
                   <span style={{ color: LIME, fontWeight: 'bold' }}>{a.symbol}</span>
                   <div style={{ color: '#8B98A5', fontSize: '0.82em' }}>{a.name}</div>
                 </td>
-                <td style={{ padding: '11px 14px', color: '#B8C2CC' }}>{a.assetClass}</td>
-                <td style={{ padding: '11px 14px', textAlign: 'right', color: '#FFFFFF' }}>${a.price.toLocaleString()}</td>
-                <td style={{ padding: '11px 14px', textAlign: 'right', color: a.change24h >= 0 ? LIME : '#FF6B6B' }}>
+                <td data-label="CLASS" style={{ padding: '11px 14px', color: '#B8C2CC' }}>{a.assetClass}</td>
+                <td data-label="PRICE" style={{ padding: '11px 14px', textAlign: 'right', color: '#FFFFFF' }}>${a.price.toLocaleString()}</td>
+                <td data-label="24H" style={{ padding: '11px 14px', textAlign: 'right', color: a.change24h >= 0 ? LIME : '#FF6B6B' }}>
                   {a.change24h >= 0 ? '+' : ''}{a.change24h}%
                 </td>
-                <td style={{ padding: '11px 14px', textAlign: 'right', color: a.yield > 0 ? LIME : '#5A6470' }}>
+                <td data-label="YIELD" style={{ padding: '11px 14px', textAlign: 'right', color: a.yield > 0 ? LIME : '#5A6470' }}>
                   {a.yield > 0 ? `${a.yield}%` : '—'}
                 </td>
-                <td style={{ padding: '11px 14px', textAlign: 'right', color: '#FFFFFF' }}>{fmtUSD(a.tvl)}</td>
-                <td style={{ padding: '11px 14px' }}>
+                <td data-label="TVL" style={{ padding: '11px 14px', textAlign: 'right', color: '#FFFFFF' }}>{fmtUSD(a.tvl)}</td>
+                <td data-label="COMPLIANCE" className="explorer-cell-break" style={{ padding: '11px 14px' }}>
                   {a.compliance.map(c => (
                     <span key={c} style={{ display: 'inline-block', border: '1px solid rgba(203,250,3,0.4)', borderRadius: '4px', color: LIME, fontSize: '0.72em', padding: '1px 6px', margin: '1px 4px 1px 0' }}>{c}</span>
                   ))}
                 </td>
-                <td style={{ padding: '11px 14px', textAlign: 'right' }}>
+                <td data-label="RESERVES" style={{ padding: '11px 14px', textAlign: 'right' }}>
                   <span style={{ color: LIME, fontSize: '0.8em' }}>✓ {a.proofOfReserve.collateralizationPct}%</span>
                 </td>
               </tr>

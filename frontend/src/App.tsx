@@ -1102,7 +1102,7 @@ You can also chat naturally about blockchain activities, slots, transactions, an
           }}>
             BLOCKCHAIN BLOCKS
           </div>
-          <table style={{width:'100%', fontSize:'11px', borderCollapse: 'collapse'}}>
+          <table className="explorer-data-table" style={{width:'100%', fontSize:'11px', borderCollapse: 'collapse'}}>
             <thead>
               <tr style={{color:'#ffffff', fontWeight:'bold', borderBottom: '1px solid #ffffff'}}>
                 <td style={{padding: '5px', textAlign: 'left'}}>HEIGHT</td>
@@ -1114,10 +1114,10 @@ You can also chat naturally about blockchain activities, slots, transactions, an
             <tbody>
               {blocks.slice().reverse().map((b:any, i) => (
                 <tr key={i} style={{borderBottom:'1px solid #333333'}}>
-                  <td style={{padding: '5px', color: '#ffffff'}}>{b.height}</td>
-                  <td style={{padding: '5px', color: '#ffffff'}}>{b.producer.toUpperCase()}</td>
-                  <td style={{padding: '5px', color: '#ffffff'}}>{b.transactions.length}</td>
-                  <td style={{padding: '5px', color: '#ffffff'}}>{new Date(b.timestamp).toLocaleTimeString()}</td>
+                  <td data-label="HEIGHT" style={{padding: '5px', color: '#ffffff'}}>{b.height}</td>
+                  <td data-label="PRODUCER" style={{padding: '5px', color: '#ffffff'}}>{b.producer.toUpperCase()}</td>
+                  <td data-label="TX COUNT" style={{padding: '5px', color: '#ffffff'}}>{b.transactions.length}</td>
+                  <td data-label="TIMESTAMP" style={{padding: '5px', color: '#ffffff'}}>{new Date(b.timestamp).toLocaleTimeString()}</td>
                 </tr>
               ))}
             </tbody>
@@ -1145,7 +1145,7 @@ You can also chat naturally about blockchain activities, slots, transactions, an
           }}>
             WALLET ACCOUNTS
           </div>
-          <table style={{width:'100%', fontSize:'11px', borderCollapse: 'collapse'}}>
+          <table className="explorer-data-table" style={{width:'100%', fontSize:'11px', borderCollapse: 'collapse'}}>
             <thead>
               <tr style={{color:'#ffffff', fontWeight:'bold', borderBottom: '1px solid #ffffff'}}>
                 <td style={{padding: '5px', textAlign: 'left'}}>ADDRESS</td>
@@ -1155,8 +1155,8 @@ You can also chat naturally about blockchain activities, slots, transactions, an
             <tbody>
               {accounts.map((a:any, i)=>(
                 <tr key={i} style={{borderBottom:'1px solid #333333'}}>
-                  <td style={{padding: '5px', color: '#ffffff', fontFamily: 'JetBrains Mono'}}>{a.address}</td>
-                  <td style={{padding: '5px', color: '#ffffff'}}>{a.balance} VLADCHAIN</td>
+                  <td data-label="ADDRESS" className="explorer-cell-break" style={{padding: '5px', color: '#ffffff', fontFamily: 'JetBrains Mono'}}>{a.address}</td>
+                  <td data-label="BALANCE" style={{padding: '5px', color: '#ffffff'}}>{a.balance} VLADCHAIN</td>
                 </tr>
               ))}
             </tbody>
@@ -1184,7 +1184,7 @@ You can also chat naturally about blockchain activities, slots, transactions, an
           }}>
             AI VALIDATORS
           </div>
-          <table style={{width:'100%', fontSize:'11px', borderCollapse: 'collapse'}}>
+          <table className="explorer-data-table" style={{width:'100%', fontSize:'11px', borderCollapse: 'collapse'}}>
             <thead>
               <tr style={{color:'#ffffff', fontWeight:'bold', borderBottom: '1px solid #ffffff'}}>
                 <td style={{padding: '5px', textAlign: 'left'}}>VALIDATOR</td>
@@ -1194,10 +1194,10 @@ You can also chat naturally about blockchain activities, slots, transactions, an
             <tbody>
               {validators.map((v,i)=>(
                 <tr key={i} style={{borderBottom:'1px solid #333333'}}>
-                  <td style={{padding: '5px', color: '#ffffff', fontWeight:'bold'}}>
+                  <td data-label="VALIDATOR" style={{padding: '5px', color: '#ffffff', fontWeight:'bold'}}>
                     {v.toUpperCase()}
                   </td>
-                  <td style={{padding: '5px', color: '#ffffff'}}>{
+                  <td data-label="PERSONALITY" style={{padding: '5px', color: '#ffffff'}}>{
                     v==='alice' ? 'Cheerful, Meme Friend' :
                     v==='bob'   ? 'Sarcastic, Roaster' :
                     v==='carol' ? 'Explainer, Sassy GenZ' :

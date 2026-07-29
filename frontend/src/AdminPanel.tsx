@@ -195,7 +195,9 @@ const AdminPanel: React.FC = () => {
       color: '#ffffff',
       fontFamily: 'JetBrains Mono, monospace',
       fontSize: '12px',
-      padding: '20px'
+      padding: '20px',
+      maxWidth: '1100px',
+      margin: '0 auto'
     }}>
       <h2 style={{ color: '#ff0000', fontSize: '16px', marginBottom: '20px' }}>
         ⚠️ ADMIN PANEL
@@ -207,7 +209,7 @@ const AdminPanel: React.FC = () => {
             SYSTEM OVERVIEW
           </h3>
           
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(200px, 100%), 260px))', gap: '15px' }}>
             <div style={{ background: '#1a1a1a', padding: '15px', border: '1px solid #333' }}>
               <div style={{ color: '#CBFA03', fontSize: '11px' }}>TOTAL GIPS</div>
               <div style={{ fontSize: '20px', fontWeight: 'bold' }}>{dashboard.totalGIPs}</div>

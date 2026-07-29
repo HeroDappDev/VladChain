@@ -18,8 +18,8 @@ We take security vulnerabilities seriously. If you discover a security issue, pl
 ### 1. **DO NOT** create a public GitHub issue
 Security vulnerabilities should be reported privately to prevent exploitation.
 
-### 2. Email us at security@vladchain.ai
-Include the following information:
+### 2. Report privately via GitHub Security Advisories
+Use the repository's "Security" tab → "Report a vulnerability" to reach the maintainers privately. Include the following information:
 - **Type of issue** (buffer overflow, SQL injection, cross-site scripting, etc.)
 - **Full paths of source file(s) related to the vulnerability**
 - **The location of the affected source code (tag/branch/commit or direct URL)**
@@ -121,9 +121,8 @@ We conduct regular security audits with leading firms:
 ## Contact Information
 
 ### Security Team
-- **Email**: security@vladchain.ai
-- **PGP Key**: [security-pgp-key.asc](https://vladchain.ai/security-pgp-key.asc)
-- **Emergency**: +1-XXX-XXX-XXXX (24/7)
+- **Private reports**: GitHub Security Advisories on this repository
+- **General questions**: open a GitHub issue (no sensitive details)
 
 ### Responsible Disclosure
 We follow responsible disclosure practices:
