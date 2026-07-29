@@ -114,8 +114,8 @@ const api = (p) => `/repos/${OWNER}/${REPO}${p}`;
 
 console.log(`Pushing ${files.length} files to ${OWNER}/${REPO}@${BRANCH} ...`);
 
-let ref = await gh(api(`/git/ref/heads/${BRANCH}`));
-let parentSha = ref.object.sha;
+const ref = await gh(api(`/git/ref/heads/${BRANCH}`));
+const parentSha = ref.object.sha;
 const parentCommit = await gh(api(`/git/commits/${parentSha}`));
 console.log(`Parent commit on GitHub: ${parentSha.slice(0, 10)} "${parentCommit.message.split("\n")[0]}"`);
 
@@ -134,30 +134,15 @@ for (const f of files) {
 
 // full (non-delta) tree so removed files disappear from GitHub too
 const tree = await gh(api("/git/trees"), { method: "POST", body: JSON.stringify({ tree: treeEntries }) });
-
-// The GitHub head may advance while blobs upload (concurrent pushes).
-// On a non-fast-forward rejection, re-read the head and rebuild the commit
-// with the same tree on top of the new parent. NEVER force.
-let commit;
-for (let attempt = 0; ; attempt++) {
-  commit = await gh(api("/git/commits"), {
-    method: "POST",
-    body: JSON.stringify({ message, tree: tree.sha, parents: [parentSha] }),
-  });
-  try {
-    await gh(api(`/git/refs/heads/${BRANCH}`), {
-      method: "PATCH",
-      body: JSON.stringify({ sha: commit.sha, force: false }),
-    });
-    break;
-  } catch (err) {
-    if (attempt >= 5 || !String(err.message).includes("fast forward")) throw err;
-    await sleep(2000);
-    ref = await gh(api(`/git/ref/heads/${BRANCH}`));
-    parentSha = ref.object.sha;
-    console.log(`Head moved; retrying on new parent ${parentSha.slice(0, 10)} ...`);
-  }
-}
+const commit = await gh(api("/git/commits"), {
+  method: "POST",
+  body: JSON.stringify({ message, tree: tree.sha, parents: [parentSha] }),
+});
+// NEVER force — history on GitHub only moves forward from the clean root
+await gh(api(`/git/refs/heads/${BRANCH}`), {
+  method: "PATCH",
+  body: JSON.stringify({ sha: commit.sha, force: false }),
+});
 
 console.log(`Done. New commit: ${commit.sha}`);
 console.log(`https://github.com/${OWNER}/${REPO}/commit/${commit.sha}`);
