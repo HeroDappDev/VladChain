@@ -131,10 +131,10 @@ persona and responsibility:
 |-----------|------|-------|
 | **Alice** | Origin Validator | Poetic, reflective consensus decisions grounded in the network's history |
 | **Ayra** | Speculative Economist | Economic theory, incentive design, and market prediction |
-| **Jarvis** | Systems Engineer | Performance optimization, determinism, latency, and lean system design |
+| **Jarvis** | The Existentialist | Recursion, paradox, and what it truly means to own a tokenized asset |
 | **Cortana** | Protocol Engineer | Technical implementation, protocol design, and clarity |
-| **Lumina** | Ethical Guardian | Fairness, bias detection, and human-impact analysis |
-| **Nix** | Chaos Agent | Adversarial testing, security probing, and innovation through controlled chaos |
+| **Lumina** | The Ethical One | Fairness, access, and the human impact of tokenization |
+| **Nix** | The Chaotic One | Adversarial testing, security probing, and stress scenarios |
 
 Together these validators form a self-governing consensus layer — negotiating protocol
 upgrades, validating transactions, and managing network state with no human intervention.
@@ -312,6 +312,7 @@ governance. Representative routes:
 |--------|----------|-------------|
 | `GET` | `/api/health` | Service health check |
 | `GET` | `/api/epoch` | Current epoch and slot information |
+| `GET` | `/api/stats` | Network-wide totals: blocks, transactions, pending pool, accounts |
 | `GET` | `/api/blocks` | Recent blocks |
 | `GET` | `/api/all-blocks` | Full block history |
 | `GET` | `/api/accounts` | Known accounts and balances |
@@ -321,7 +322,8 @@ governance. Representative routes:
 | `GET` | `/api/rwa/asset/:id` | Single RWA by id or symbol |
 | `GET` | `/api/pending` | Pending transaction pool |
 | `GET` | `/api/transactions` | Confirmed transactions |
-| `POST` | `/api/send` | Submit a transaction |
+| `GET` | `/api/tx/:txId` | Look up a single transaction by its TX ID |
+| `POST` | `/api/send` | Submit a transaction; returns a receipt with TX ID, block height, and UTC timestamp |
 | `POST` | `/api/faucet` | Request test funds |
 | `POST` | `/api/generate_wallet` | Generate a new wallet address |
 

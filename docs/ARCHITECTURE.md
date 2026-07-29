@@ -2,7 +2,12 @@
 
 ## Overview
 
-VladChain is a next-generation Layer 1 blockchain that integrates artificial intelligence at the protocol level. This document provides a comprehensive overview of the system architecture, components, and design decisions.
+VladChain is the RWA Layer 3 for the Robinhood Chain — a Real World Asset settlement
+network simulation that integrates artificial intelligence at the protocol level.
+Tokenized equities, treasuries, real estate, commodities, and private credit are
+registered, priced, attested, and settled by a council of six autonomous AI validators.
+
+This document describes the system as it is actually built.
 
 ## System Architecture
 
@@ -12,290 +17,161 @@ VladChain is a next-generation Layer 1 blockchain that integrates artificial int
 ┌─────────────────────────────────────────────────────────────────┐
 │                        Client Layer                             │
 ├─────────────────────────────────────────────────────────────────┤
-│  Web UI (React)  │  Mobile App  │  CLI Tools  │  API Clients   │
+│         React 18 + Vite terminal UI (frontend/src)              │
+│   Home · Explorer · Faucet · Send · Oracle · RWA · GIPs · Docs  │
 └─────────────────────────────────────────────────────────────────┘
-                                │
+                                │  REST (polling)
                                 ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                      API Gateway Layer                          │
+│                     Express.js REST API                         │
 ├─────────────────────────────────────────────────────────────────┤
-│  REST API  │  WebSocket API  │  GraphQL API  │  gRPC API       │
+│  Chain Simulation │ Multi-Agent AI Router │ GIP Governance      │
+│  RWA Registry     │ Chat Log              │ Admin               │
 └─────────────────────────────────────────────────────────────────┘
                                 │
-                                ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    Application Layer                            │
-├─────────────────────────────────────────────────────────────────┤
-│  Consensus Engine  │  Smart Contracts  │  AI Validators       │
-│  Transaction Pool  │  Block Builder    │  Governance System   │
-└─────────────────────────────────────────────────────────────────┘
-                                │
-                                ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                     Blockchain Layer                            │
-├─────────────────────────────────────────────────────────────────┤
-│  Block Chain  │  State Machine  │  Merkle Trees  │  Cryptography│
-└─────────────────────────────────────────────────────────────────┘
-                                │
-                                ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                      Storage Layer                              │
-├─────────────────────────────────────────────────────────────────┤
-│  SQLite/PostgreSQL  │  IPFS  │  Redis Cache  │  File System   │
-└─────────────────────────────────────────────────────────────────┘
+                ┌───────────────┼───────────────┐
+                ▼               ▼               ▼
+        ┌──────────────┐ ┌──────────────┐ ┌─────────────────┐
+        │   SQLite     │ │ AI Providers │ │ Solidity token  │
+        │ (better-     │ │ OpenAI /     │ │ contract        │
+        │  sqlite3)    │ │ Claude / Groq│ │ (contracts/)    │
+        └──────────────┘ └──────────────┘ └─────────────────┘
 ```
+
+### Dual Backend Deployment
+
+The API exists in two variants that share the same route surface for core
+endpoints but differ internally:
+
+- **`backend/src/`** — long-running Express server for local development
+  (port 4000), with a `setInterval`-driven slot/block production loop.
+  Transfers charge a 0.001 VLADCHAIN fee (checked and deducted from the
+  sender), and `/api/send` waits for block inclusion before returning the
+  receipt. Also mounts the `/api/multi-agent` router.
+- **`api/`** — serverless variant (Vercel) where slot progression and block
+  production are computed on-demand per request. Transactions are included in
+  a block synchronously (no wait loop), the transfer fee is a flat `1` recorded
+  on the transaction rather than deducted from the sender, and the
+  `/api/multi-agent` router is not mounted.
+
+Keeping these two variants aligned is tracked as ongoing work; where behavior
+differs, this document calls it out explicitly.
+
+The frontend calls relative `/api` URLs and is served by Vite (port 5000) with a
+dev proxy to the backend.
 
 ## Core Components
 
-### 1. Consensus Engine
+### 1. Chain Simulation (`backend/src/chain.ts`, `api/chain.ts`)
 
-The consensus engine implements a novel Proof of AI (PoAI) mechanism that combines traditional blockchain security with AI-powered validation.
+An in-memory blockchain simulation with a Solana-inspired timing model:
 
-#### Key Features:
-- **AI Validator Network**: 7 specialized AI agents with unique expertise
-- **Dynamic Consensus**: Adaptive consensus based on network conditions
-- **Fault Tolerance**: Byzantine fault tolerance with AI assistance
-- **Finality**: 6-second finality with AI-optimized confirmation
+- **Block time**: ~400ms slots, 432,000 slots per epoch
+- **Accounts**: named validator/system accounts plus user-generated wallets
+  (restored from SQLite at startup)
+- **Transactions**: every transaction — user sends, faucet drips, and simulated
+  network transfers — carries a unique TX ID, is stamped with its block height at
+  inclusion, and is logged to the SQLite `transactions` table
+- **Receipts**: `POST /api/send` returns a receipt (TX ID, block height, UTC
+  timestamp, from/to, amount, fee); `GET /api/tx/:txId` looks up any logged
+  transaction. The dev backend waits for the ~400ms block loop to include the
+  transaction; the serverless variant includes it in a block synchronously.
+- **Fees**: dev backend charges a flat 0.001 VLADCHAIN per transfer (deducted
+  from the sender and credited to the block producer with the block reward);
+  the serverless variant records a flat fee of 1 on the transaction without
+  deducting it from the sender
 
-#### Consensus Algorithm:
-```typescript
-interface ConsensusState {
-  currentBlock: Block;
-  validators: AIValidator[];
-  consensusThreshold: number;
-  aiConfidence: number;
-}
+### 2. AI Validator Network (`backend/src/multi-agent.ts`, `personalities.ts`)
 
-class PoAIConsensus {
-  async validateBlock(block: Block): Promise<ValidationResult> {
-    const aiValidations = await Promise.all(
-      this.validators.map(v => v.validateBlock(block))
-    );
-    
-    const consensus = this.calculateConsensus(aiValidations);
-    return consensus.confidence >= this.consensusThreshold;
-  }
-}
-```
+Six AI validator personas debate and govern the network. Each agent has its own
+system prompt, provider routing, and conversation history:
 
-### 2. AI Validator Network
+| Validator | Persona |
+|-----------|---------|
+| **Alice** | The Origin Validator — reflective consensus grounded in the network's history |
+| **Ayra** | The Speculative Economist — incentive design and RWA market prediction |
+| **Jarvis** | The Existentialist — questions what it means to own a tokenized asset |
+| **Cortana** | The Protocol Engineer — technical implementation and protocol clarity |
+| **Lumina** | The Ethical One — fairness, access, and human impact of tokenization |
+| **Nix** | The Chaotic One — adversarial testing and stress scenarios |
 
-The AI validator network consists of 7 specialized AI agents, each with unique personalities and expertise areas.
+All personas debate exclusively RWA topics: oracle NAV feeds, proof-of-reserve
+attestation cadence, qualified custody, KYC/AML and Reg D/S compliance, and
+compliant settlement.
 
-#### Validator Types:
-- **Alice**: Economic and DeFi specialist
-- **Jarvis**: Security and cryptography expert
-- **Cortana**: Governance and consensus coordinator
-- **Lumina**: Performance and scalability analyst
-- **Ayra**: Privacy and compliance specialist
-- **Nix**: Innovation and research lead
-- **Eve**: User experience and adoption strategist
+AI calls are routed through pluggable providers (`openai.ts`, `claude.ts`,
+`grok.ts` for Groq), with deterministic fallback responses when no provider key
+is configured.
 
-#### AI Integration:
-```typescript
-interface AIValidator {
-  id: string;
-  personality: Personality;
-  expertise: ExpertiseArea[];
-  confidence: number;
-  
-  validateTransaction(tx: Transaction): Promise<ValidationResult>;
-  validateBlock(block: Block): Promise<ValidationResult>;
-  provideInsight(context: ValidationContext): Promise<AIInsight>;
-}
-```
+### 3. RWA Registry (`backend/src/rwa.ts`, `api/rwa.ts`)
 
-### 3. Smart Contract Engine
+The registry models tokenized real world assets across seven asset classes —
+equities (vHOOD, vSPY, vNVDA), treasuries (vTBILL, vUST10), real estate,
+commodities (vXAU, vWTI), and private credit — each with simulated live pricing,
+yields, proof-of-reserve attestations, and compliance badges. Exposed via
+`/api/rwa/registry`, `/api/rwa/stats`, and `/api/rwa/asset/:id`.
 
-The smart contract engine is EVM-compatible with AI optimization features.
+### 4. Governance: GIP Engine (`backend/src/gip-system.ts`, `gip-router.ts`)
 
-#### Features:
-- **EVM Compatibility**: Full Ethereum smart contract support
-- **AI Optimization**: Automatic gas optimization and security analysis
-- **Cross-Chain**: Native support for cross-chain contract calls
-- **Privacy**: Zero-knowledge proof integration
+VladChain Improvement Proposals move through a structured lifecycle: proposal →
+validator debate (simulated in real time with gradual message release) → voting →
+archive. Debate transcripts and proposals persist to SQLite.
 
-#### Contract Execution:
-```typescript
-class SmartContractEngine {
-  async executeContract(
-    contract: Contract,
-    method: string,
-    params: any[],
-    context: ExecutionContext
-  ): Promise<ExecutionResult> {
-    // AI-optimized execution
-    const optimizedParams = await this.aiOptimizer.optimize(params);
-    const result = await this.evm.execute(contract, method, optimizedParams);
-    
-    // AI security analysis
-    await this.aiSecurityAnalyzer.analyze(result);
-    
-    return result;
-  }
-}
-```
+### 5. Persistence (`backend/src/database.ts`)
 
-### 4. Transaction Processing
+A single SQLite database (`backend/data/vladchain.db`, via better-sqlite3) stores:
 
-The transaction processing system features AI-powered optimization and dynamic fee calculation.
+- `chat_messages` — homepage chat/event log
+- `gips` and `gip_messages` — governance proposals and debate transcripts
+- `slot_data` — persisted slot/epoch clock so the chain resumes where it left off
+- `wallets` — user-generated wallet addresses and recovery phrases
+- `transactions` — every transaction with TX ID, block height, amounts, fee, and
+  UTC timestamp (foundation for transaction search)
 
-#### Transaction Flow:
-1. **Submission**: Transaction submitted to mempool
-2. **AI Analysis**: AI validators analyze transaction
-3. **Fee Calculation**: Dynamic fee based on AI predictions
-4. **Validation**: Multi-layer validation with AI assistance
-5. **Execution**: Optimized execution with AI insights
-6. **Confirmation**: AI-accelerated confirmation
+The database layer has a PostgreSQL configuration path but currently falls back
+to SQLite in all environments.
 
-#### Dynamic Fee Market:
-```typescript
-class DynamicFeeMarket {
-  async calculateFee(tx: Transaction): Promise<FeeCalculation> {
-    const congestion = await this.aiPredictor.predictCongestion();
-    const demand = await this.aiAnalyzer.analyzeDemand();
-    const gasPrice = this.calculateOptimalGasPrice(congestion, demand);
-    
-    return {
-      gasPrice,
-      estimatedFee: tx.gasLimit * gasPrice,
-      confidence: this.aiConfidence
-    };
-  }
-}
-```
-
-## Data Flow
-
-### Block Production Flow
+## Transaction Flow (dev backend)
 
 ```
-1. Transaction Pool
+1. POST /api/send (from, to, amount)
    ↓
-2. AI Validator Analysis
+2. Balance check against amount + fee; debit sender / credit receiver
    ↓
-3. Block Builder
+3. Transaction created with TX ID, pushed to pool and logged to SQLite
    ↓
-4. Consensus Engine
+4. Slot loop includes it in the next ~400ms block; block height stamped
    ↓
-5. AI Validation Network
+5. Receipt returned: TX ID, block, UTC time, from/to, amount, fee
    ↓
-6. Block Finalization
-   ↓
-7. State Update
-   ↓
-8. Network Broadcast
+6. Visible on the explorer; retrievable via GET /api/tx/:txId
 ```
 
-### Transaction Processing Flow
-
-```
-1. Transaction Submission
-   ↓
-2. Mempool Entry
-   ↓
-3. AI Fee Calculation
-   ↓
-4. Transaction Validation
-   ↓
-5. Block Inclusion
-   ↓
-6. AI Consensus
-   ↓
-7. Execution
-   ↓
-8. State Update
-   ↓
-9. Confirmation
-```
+In the serverless variant, steps 2–4 differ: the balance check is against the
+amount only, and the transaction is stamped with a block height and included in
+a block synchronously within the same request before the receipt is returned.
 
 ## Security Model
 
-### Multi-Layer Security
+This is an experimental simulation, not a production blockchain. Practical
+security measures in the codebase:
 
-1. **Cryptographic Security**: Standard blockchain cryptography
-2. **AI Security**: AI-powered threat detection and prevention
-3. **Consensus Security**: Byzantine fault tolerance
-4. **Network Security**: P2P network with AI monitoring
-5. **Application Security**: Smart contract security analysis
+- Faucet rate limiting (30s cooldown, 2 requests and 1000 VLADCHAIN per day)
+- Input validation on transaction and account endpoints
+- Secrets held in environment variables, never committed
+- Wallet mnemonics stored server-side for the simulation only — no real funds
 
-### AI Security Features
+## Frontend
 
-- **Threat Detection**: Real-time threat analysis
-- **Anomaly Detection**: AI-powered anomaly identification
-- **Risk Assessment**: Dynamic risk evaluation
-- **Automated Response**: AI-driven security responses
+- **React 18 + TypeScript + Vite**, terminal aesthetic: black background,
+  lime-green (#CBFA03) accents, JetBrains Mono typeface
+- Single-page tabbed shell (`frontend/src/App.tsx`): Home (chat + RWA story +
+  live debates), Explorer (live network stats), Faucet, Send (with transaction
+  receipt card), Oracle chat, RWA dashboard, GIP governance, and Docs
+- Live data via 5-second polling of the REST API
 
-## Performance Characteristics
+## Future Ideas
 
-### Throughput
-- **Peak TPS**: 10,000+ transactions per second
-- **Sustained TPS**: 5,000+ transactions per second
-- **Block Time**: 2 seconds
-- **Finality**: 6 seconds
-
-### Latency
-- **Average Latency**: <100ms
-- **P95 Latency**: <200ms
-- **P99 Latency**: <500ms
-
-### Scalability
-- **Horizontal Scaling**: Sharded architecture
-- **Vertical Scaling**: AI-optimized resource usage
-- **Cross-Chain**: Native interoperability
-
-## Network Topology
-
-### Node Types
-
-1. **Full Nodes**: Complete blockchain data and AI validation
-2. **Light Nodes**: Minimal data with AI verification
-3. **Validator Nodes**: AI-powered consensus participation
-4. **Archive Nodes**: Historical data with AI indexing
-
-### Network Structure
-
-```
-                    ┌─────────────────┐
-                    │   Validator 1   │
-                    │   (Alice)       │
-                    └─────────────────┘
-                           │
-                    ┌─────────────────┐
-                    │   Validator 2   │
-                    │   (Jarvis)      │
-                    └─────────────────┘
-                           │
-┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
-│   Full Node 1   │──│   Consensus     │──│   Full Node 2   │
-└─────────────────┘  │   Engine        │  └─────────────────┘
-                     └─────────────────┘
-                           │
-                    ┌─────────────────┐
-                    │   Validator 3   │
-                    │   (Cortana)     │
-                    └─────────────────┘
-```
-
-## Future Enhancements
-
-### Planned Features
-
-1. **Layer 2 Scaling**: AI-optimized rollups
-2. **Cross-Chain Bridges**: Native multi-chain interoperability
-3. **Privacy Features**: Zero-knowledge proof integration
-4. **Governance**: AI-assisted decentralized governance
-5. **DeFi Integration**: Native DeFi protocols
-
-### Research Areas
-
-1. **Quantum Resistance**: Post-quantum cryptography
-2. **AI Evolution**: Advanced AI consensus mechanisms
-3. **Scalability**: Novel scaling solutions
-4. **Interoperability**: Universal blockchain bridges
-
-## Conclusion
-
-VladChain represents a paradigm shift in blockchain technology by integrating AI at the protocol level. The architecture provides a solid foundation for a next-generation blockchain that combines the security and decentralization of traditional blockchains with the intelligence and adaptability of AI systems.
-
-For more detailed technical specifications, please refer to the [Technical Specification](TECHNICAL_SPEC.md) document. 
+Aspirational directions, not implemented today: transaction search UI,
+WebSocket push updates, PostgreSQL production persistence, and real on-chain
+settlement integration.

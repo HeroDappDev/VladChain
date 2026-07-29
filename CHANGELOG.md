@@ -2,93 +2,60 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Planned
+- Transaction search by TX ID on the block explorer
+- Public GitHub repository
+
+## [2.2.0] - 2026-07-29
+
 ### Added
-- AI-powered consensus mechanism
-- Dynamic fee market optimization
-- Cross-chain interoperability protocols
-- Zero-knowledge proof integration
-- Quantum-resistant cryptography
+- **Transaction receipts** — `POST /api/send` now returns a full receipt with TX ID,
+  block height, exact UTC timestamp, sender (debit), receiver (credit), and fee.
+- Terminal-styled receipt card on the Send page.
+- Persistent transaction log — every transaction (user sends, faucet drips, and
+  simulated network transfers) is recorded with its TX ID and block height.
+- `GET /api/tx/:txId` — look up any transaction by its TX ID (foundation for search).
+- `GET /api/stats` — live network-wide totals for blocks, transactions, pending pool,
+  and accounts, now powering the explorer stat cards.
+- Wallet count persistence — generated wallets are restored at startup so Total
+  Accounts survives restarts.
 
 ### Changed
-- Improved transaction processing speed
-- Enhanced AI validator responses
-- Updated consensus algorithm
+- Header navigation: "CHAT" tab renamed to "HOME".
+- Homepage: new RWA Layer 3 story section (why an RWA L3, how it works, by the
+  numbers, AI-governed) shown above the Live Oracle Debates panel.
+- Docs page: removed the redundant "VLADCHAIN PROTOCOL" heading under the ASCII logo.
+- Header banner now reads "MAINNET TESTING".
 
-### Fixed
-- Block confirmation delays
-- Memory leaks in validator system
-- API response inconsistencies
-
-## [1.0.0] - 2024-01-15
+## [2.1.0] - 2026-07
 
 ### Added
-- Initial blockchain implementation
-- AI validator network with 7 specialized agents
-- Real-time block explorer
-- Wallet generation and management
-- Faucet system for testing
-- Interactive chat interface
-- Block and transaction visualization
-- Smart contract engine (EVM-compatible)
-- REST API with comprehensive endpoints
-- WebSocket support for real-time updates
-- Docker containerization
-- Comprehensive test suite
-- Documentation and deployment guides
-
-### Technical Features
-- Proof of AI (PoAI) consensus mechanism
-- AI-powered transaction validation
-- Dynamic fee calculation
-- Cross-chain bridge infrastructure
-- Layer 2 scaling solutions
-- Privacy-preserving transactions
-- Multi-signature wallet support
-- Automated governance systems
-
-### Performance
-- 10,000+ TPS transaction throughput
-- 2-second block time
-- 6-second finality
-- <100ms average network latency
-- AI-optimized gas pricing
-
-## [0.9.0] - 2024-01-01
-
-### Added
-- Beta blockchain implementation
-- Basic AI validator system
-- Simple wallet functionality
-- Transaction processing
-- Block generation
+- RWA registry and dashboard (`/rwa`): tokenized equities (vHOOD/vSPY/vNVDA),
+  treasuries (vTBILL/vUST10), real estate, commodities (vXAU/vWTI), and private
+  credit with live prices, yields, proof-of-reserve attestations, and compliance
+  badges.
+- RWA API: `GET /api/rwa/registry`, `GET /api/rwa/stats`, `GET /api/rwa/asset/:id`.
+- Homepage `/rwa` command.
 
 ### Changed
-- Improved consensus algorithm
-- Enhanced security measures
+- **Rebranded to VLADCHAIN** — positioned as The RWA Layer 3 for the Robinhood Chain.
+- All six AI validator personas (Alice, Ayra, Jarvis, Cortana, Lumina, Nix) now
+  debate exclusively RWA topics: oracle NAV feeds, proof-of-reserve cadence,
+  qualified custody, KYC/AML, and compliant settlement.
+- Sample governance proposals (GIPs) re-themed to RWA protocol topics.
 
-## [0.8.0] - 2023-12-15
-
-### Added
-- Alpha blockchain prototype
-- Initial AI integration
-- Basic transaction system
-
-### Fixed
-- Critical security vulnerabilities
-- Performance bottlenecks
-
-## [0.7.0] - 2023-12-01
+## [2.0.0] - 2026-06
 
 ### Added
-- Proof of concept implementation
-- Basic blockchain structure
-- Simple consensus mechanism
-
----
-
-For more detailed information about each release, please refer to the [GitHub releases page](https://github.com/your-username/vladchain/releases). 
+- Six-validator AI council with Proof of AI (PoAI) consensus and live debates.
+- VladChain Improvement Proposal (GIP) governance system with structured debate,
+  voting, and lifecycle tracking.
+- Solana-inspired slot/epoch block production (~400ms blocks, 432,000 slots/epoch).
+- Block explorer, faucet with daily limits, wallet generation (VladChain + EVM),
+  and send-transaction flow.
+- Multi-provider AI routing (OpenAI, Anthropic Claude, Groq) per validator.
+- SQLite persistence with PostgreSQL support for production.

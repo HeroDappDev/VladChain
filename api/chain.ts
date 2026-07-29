@@ -162,6 +162,16 @@ export class Chain {
     return this.transactions.slice(-100); // Return last 100 transactions
   }
 
+  getTransactionByTxId(txId: string) {
+    try {
+      const logged = db.getTransactionByTxId(txId);
+      if (logged) return logged;
+    } catch { /* fall through to memory */ }
+    const tx = this.transactions.find((t: any) => t.hash === txId);
+    if (!tx) return null;
+    return { txId: tx.hash, blockHeight: tx.blockHeight ?? null, from: tx.from, to: tx.to, amount: tx.amount, fee: tx.fee ?? 0, timestamp: tx.timestamp, timestampUTC: new Date(tx.timestamp).toISOString(), type: tx.from === 'faucet' ? 'faucet' : 'transfer' };
+  }
+
   private updateSlotsOnDemand() {
     const now = Date.now();
     const timeDiff = now - this.lastSlotUpdate;
@@ -244,6 +254,7 @@ export class Chain {
     this.updateSlotsOnDemand();
     const epochInfo = this.getEpoch();
 
+    const blockHeight = this.blocks.length + 1;
     const tx = {
       from,
       to,
@@ -252,9 +263,12 @@ export class Chain {
       hash: this.generateTransactionHash(epochInfo.epoch, epochInfo.slot, 'transfer', to, amount),
       fee: 1,
       epoch: epochInfo.epoch,
-      slot: epochInfo.slot
+      slot: epochInfo.slot,
+      blockHeight
     };
     this.transactions.push(tx);
+    this.generateBlock(); // Include the transaction in a real block at blockHeight
+    try { db.logTransaction({ ...tx, type: 'transfer' }); } catch { /* logging is best-effort in serverless */ }
 
     return { success: true, transaction: tx };
   }
@@ -285,9 +299,12 @@ export class Chain {
         hash: this.generateTransactionHash(epochInfo.epoch, epochInfo.slot, 'faucet', address, amount),
         fee: 0,
         epoch: epochInfo.epoch,
-        slot: epochInfo.slot
+        slot: epochInfo.slot,
+        blockHeight: this.blocks.length + 1
       };
       this.transactions.push(tx);
+      this.generateBlock();
+      try { db.logTransaction({ ...tx, type: 'faucet' }); } catch { /* logging is best-effort in serverless */ }
 
       return { success: true, transaction: tx };
     } else {

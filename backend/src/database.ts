@@ -166,8 +166,27 @@ class DatabaseManager {
       )
     `);
 
+    // Create transactions table so every TX ID is logged and searchable later
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS transactions (
+        tx_id TEXT PRIMARY KEY,
+        block_height INTEGER,
+        from_address TEXT NOT NULL,
+        to_address TEXT NOT NULL,
+        amount REAL NOT NULL,
+        fee REAL NOT NULL DEFAULT 0,
+        timestamp INTEGER NOT NULL,
+        timestamp_utc TEXT NOT NULL,
+        tx_type TEXT NOT NULL DEFAULT 'transfer',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     // Create indexes for better performance
     this.db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_tx_from ON transactions(from_address);
+      CREATE INDEX IF NOT EXISTS idx_tx_to ON transactions(to_address);
+      CREATE INDEX IF NOT EXISTS idx_tx_timestamp ON transactions(timestamp);
       CREATE INDEX IF NOT EXISTS idx_chat_timestamp ON chat_messages(timestamp);
       CREATE INDEX IF NOT EXISTS idx_chat_session ON chat_messages(session_id);
       CREATE INDEX IF NOT EXISTS idx_gip_id ON gip_messages(gip_id);
@@ -314,6 +333,48 @@ class DatabaseManager {
       votes: JSON.parse(result.votes || '{}'),
       debateThread: this.getGIPMessages(result.id)
     }));
+  }
+
+  // Transaction log methods
+  logTransaction(tx: { hash?: string; from: string; to: string; amount: number; fee?: number; timestamp: number; blockHeight?: number; type?: string }): void {
+    if (!tx.hash) return;
+    try {
+      const stmt = this.db.prepare(`
+        INSERT OR IGNORE INTO transactions (tx_id, block_height, from_address, to_address, amount, fee, timestamp, timestamp_utc, tx_type)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+      stmt.run(
+        tx.hash,
+        tx.blockHeight ?? null,
+        tx.from,
+        tx.to,
+        tx.amount,
+        tx.fee ?? 0,
+        tx.timestamp,
+        new Date(tx.timestamp).toISOString(),
+        tx.type || 'transfer'
+      );
+    } catch (error: any) {
+      console.log('Could not log transaction:', error.message);
+    }
+  }
+
+  setTransactionBlock(txId: string, blockHeight: number): void {
+    try {
+      const stmt = this.db.prepare('UPDATE transactions SET block_height = ? WHERE tx_id = ?');
+      stmt.run(blockHeight, txId);
+    } catch (error: any) {
+      console.log('Could not update transaction block:', error.message);
+    }
+  }
+
+  getTransactionByTxId(txId: string): any {
+    const stmt = this.db.prepare(`
+      SELECT tx_id as txId, block_height as blockHeight, from_address as "from", to_address as "to",
+             amount, fee, timestamp, timestamp_utc as timestampUTC, tx_type as type
+      FROM transactions WHERE tx_id = ?
+    `);
+    return stmt.get(txId) as any;
   }
 
   // Wallet methods

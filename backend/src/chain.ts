@@ -1,7 +1,7 @@
 import { db } from './database';
 
 export type Account = { address: string; balance: number };
-export type Transaction = { from: string; to: string; amount: number; timestamp: number; hash?: string; fee?: number };
+export type Transaction = { from: string; to: string; amount: number; timestamp: number; hash?: string; fee?: number; blockHeight?: number };
 export type Block = { height: number; producer: string; transactions: Transaction[]; timestamp: number; hash?: string };
 
 const generateUniqueNames = (): string[] => {
@@ -184,7 +184,18 @@ export class VladChain {
     
     this.txPool.push(tx);
     this.transactionHistory.push(tx);
+    db.logTransaction({ ...tx, type: 'transfer' });
     return tx;
+  }
+
+  getTransactionByTxId(txId: string) {
+    try {
+      const logged = db.getTransactionByTxId(txId);
+      if (logged) return logged;
+    } catch { /* fall through to memory */ }
+    const tx = this.transactionHistory.find(t => t.hash === txId);
+    if (!tx) return null;
+    return { txId: tx.hash, blockHeight: tx.blockHeight ?? null, from: tx.from, to: tx.to, amount: tx.amount, fee: tx.fee ?? 0, timestamp: tx.timestamp, timestampUTC: new Date(tx.timestamp).toISOString(), type: tx.from === 'faucet' ? 'faucet' : 'transfer' };
   }
 
   createAccount(address: string) {
@@ -211,6 +222,7 @@ export class VladChain {
         fee: 0
       };
       this.transactionHistory.push(faucetTx);
+      db.logTransaction({ ...faucetTx, type: 'faucet' });
       
       return { ok: true };
     } else {
@@ -229,6 +241,12 @@ export class VladChain {
     };
     this.blocks.push(block);
     this.lastBlockTime = block.timestamp;
+
+    // Stamp each included transaction with its block height and persist it
+    txs.forEach(tx => {
+      tx.blockHeight = block.height;
+      if (tx.hash) db.setTransactionBlock(tx.hash, block.height);
+    });
     
     // Block reward and transaction fees
     if (this.accounts[validator]) {

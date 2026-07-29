@@ -232,6 +232,7 @@ export default function App() {
   const [sendAmount, setSendAmount] = useState<string>('');
   const [sendTo, setSendTo] = useState<string>('');
   const [sendFrom, setSendFrom] = useState<string>('');
+  const [txReceipt, setTxReceipt] = useState<{ txId: string; blockHeight: number | null; timestampUTC: string; from: string; to: string; amount: number; fee: number } | null>(null);
   const [narrativeMode, setNarrativeMode] = useState<boolean>(false);
   const [narrativeCache, setNarrativeCache] = useState<Record<string, string>>({});
   const [logoFrame, setLogoFrame] = useState<number>(0);
@@ -562,18 +563,21 @@ You can also chat naturally about blockchain activities, slots, transactions, an
   };
 
   const sendTransaction = async () => {
-    if (!sendFrom.trim() || !sendTo.trim() || !sendAmount.trim()) return;
+    const fromAddress = (sendFrom || newAccountAddress).trim();
+    if (!fromAddress || !sendTo.trim() || !sendAmount.trim()) return;
     try {
       const response = await fetch(`${API_BASE}/api/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          from: sendFrom.trim(), 
+          from: fromAddress, 
           to: sendTo.trim(), 
           amount: parseFloat(sendAmount) 
         })
       });
       if (response.ok) {
+        const data = await response.json();
+        if (data.receipt) setTxReceipt(data.receipt);
         setSendFrom('');
         setSendTo('');
         setSendAmount('');
@@ -1002,9 +1006,6 @@ You can also chat naturally about blockchain activities, slots, transactions, an
                 </div>
               </div>
               
-              {/* Live Oracle Debates */}
-              <LiveDebate />
-
               {/* RWA Layer 3 story section */}
               <div className="rwa-story">
                 <div className="rwa-story-section">
@@ -1071,6 +1072,9 @@ You can also chat naturally about blockchain activities, slots, transactions, an
                   </div>
                 </div>
               </div>
+
+              {/* Live Oracle Debates */}
+              <LiveDebate />
             </div>
           )}
           
@@ -2018,11 +2022,10 @@ You can also chat naturally about blockchain activities, slots, transactions, an
           <label>From Address:</label>
           <input
             type="text"
-            value={newAccountAddress}
+            value={sendFrom || newAccountAddress}
             onChange={(e) => setSendFrom(e.target.value)}
-            placeholder={newAccountAddress ? newAccountAddress : "Sender wallet address..."}
+            placeholder="Sender wallet address..."
             className="cli-input"
-            disabled={!!newAccountAddress}
           />
         </div>
         <div className="form-group">
@@ -2047,9 +2050,36 @@ You can also chat naturally about blockchain activities, slots, transactions, an
             className="cli-input"
           />
         </div>
-        <button onClick={sendTransaction} className="cli-button" disabled={!newAccountAddress.trim() || !sendTo.trim() || !sendAmount.trim()}>
+        <button onClick={sendTransaction} className="cli-button" disabled={!(sendFrom || newAccountAddress).trim() || !sendTo.trim() || !sendAmount.trim()}>
           SEND TRANSACTION
         </button>
+
+        {txReceipt && (
+          <div className="tx-receipt">
+            <div className="tx-receipt-header">
+              <span>■ TRANSACTION RECEIPT</span>
+              <button className="tx-receipt-close" onClick={() => setTxReceipt(null)}>✕</button>
+            </div>
+            <div className="tx-receipt-row"><span className="tx-receipt-label">TX ID</span><span className="tx-receipt-value tx-receipt-mono">{txReceipt.txId}</span></div>
+            <div className="tx-receipt-row"><span className="tx-receipt-label">BLOCK</span><span className="tx-receipt-value">{txReceipt.blockHeight !== null ? `#${txReceipt.blockHeight}` : 'PENDING'}</span></div>
+            <div className="tx-receipt-row"><span className="tx-receipt-label">TIME (UTC)</span><span className="tx-receipt-value">{txReceipt.timestampUTC.replace('T', ' ').replace(/\.\d+Z$/, ' UTC')}</span></div>
+            <div className="tx-receipt-transfer">
+              <div className="tx-receipt-party">
+                <div className="tx-receipt-party-label">FROM (SENT)</div>
+                <div className="tx-receipt-mono">{txReceipt.from}</div>
+                <div className="tx-receipt-debit">-{(txReceipt.amount + txReceipt.fee).toFixed(3)} VLADCHAIN</div>
+              </div>
+              <div className="tx-receipt-arrow">→</div>
+              <div className="tx-receipt-party">
+                <div className="tx-receipt-party-label">TO (RECEIVED)</div>
+                <div className="tx-receipt-mono">{txReceipt.to}</div>
+                <div className="tx-receipt-credit">+{txReceipt.amount.toFixed(3)} VLADCHAIN</div>
+              </div>
+            </div>
+            <div className="tx-receipt-row"><span className="tx-receipt-label">FEE</span><span className="tx-receipt-value">{txReceipt.fee} VLADCHAIN</span></div>
+            <div className="tx-receipt-footer">CONFIRMED ON VLADCHAIN — VIEW IT LIVE ON THE EXPLORER</div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -2110,7 +2140,7 @@ You can also chat naturally about blockchain activities, slots, transactions, an
           </a>
           
           {[
-            {id: 'chat', label: 'CHAT'},
+            {id: 'chat', label: 'HOME'},
             {id: 'explorer', label: 'EXPLORER'},
             {id: 'faucet', label: 'FAUCET'},
             {id: 'send', label: 'SEND'},
@@ -2229,10 +2259,7 @@ You can also chat naturally about blockchain activities, slots, transactions, an
                 )}
               </div>
 
-              <h1 style={{color: '#FFFFFF', textAlign: 'center', fontSize: '2.6em', margin: '32px 0 12px', fontWeight: 'bold', letterSpacing: '1px'}}>
-                VLADCHAIN <span style={{color: '#CBFA03', textShadow: '0 0 18px #CBFA03'}}>PROTOCOL</span>
-              </h1>
-              <div style={{textAlign: 'center', color: '#FFFFFF', marginBottom: '10px', fontSize: '1.05em'}}>
+              <div style={{textAlign: 'center', color: '#FFFFFF', margin: '32px 0 10px', fontSize: '1.05em'}}>
                 The RWA Layer 3 for the Robinhood Chain — Real World Assets, Tokenized and Settled by Autonomous AI
               </div>
               <div style={{textAlign: 'center', color: '#8B98A5', marginBottom: '44px', fontSize: '0.85em', letterSpacing: '2px'}}>

@@ -318,7 +318,23 @@ app.post('/api/send', async (req, res) => {
   if (!result.success) return res.status(400).json({ error: result.error });
   await addEventChatToLog('send', `${from} sent ${amount} VLADCHAIN to ${to}`, { from, to, amount });
   await addEventChatToLog('token_received', `User received ${amount} VLADCHAIN tokens`, { amount });
-  res.json({ ok: true, tx: result.transaction });
+  const tx: any = result.transaction;
+  const receipt = {
+    txId: tx.hash,
+    blockHeight: tx.blockHeight ?? null,
+    timestampUTC: new Date(tx.timestamp).toISOString(),
+    from: tx.from,
+    to: tx.to,
+    amount: tx.amount,
+    fee: tx.fee ?? 0
+  };
+  res.json({ ok: true, tx, receipt });
+});
+
+app.get('/api/tx/:txId', (req, res) => {
+  const tx = chain.getTransactionByTxId(req.params.txId);
+  if (!tx) return res.status(404).json({ error: 'Transaction not found' });
+  res.json(tx);
 });
 
 app.post('/api/block', (req, res) => {
