@@ -1,6 +1,9 @@
 # Security Policy
 
-VladChain is an experimental, in-development project. This policy describes how to report security issues and what security practices actually apply to this codebase. It makes no claims of certifications, audits, or dedicated security staffing.
+VLADCHAIN is an experimental blockchain simulation. It does not hold real funds,
+custody real assets, or process payments. Even so, we want the code and the
+hosted demo to be safe, and we appreciate responsible reports. This policy makes
+no claims of certifications, audits, or dedicated security staffing.
 
 ## Reporting a Vulnerability
 
@@ -8,39 +11,48 @@ VladChain is an experimental, in-development project. This policy describes how 
 Security vulnerabilities should be reported privately to prevent exploitation.
 
 ### 2. Report privately via GitHub Security Advisories
-Use the repository's "Security" tab → "Report a vulnerability" to reach the maintainers privately. Include the following information where possible:
-- **Type of issue** (e.g. injection, cross-site scripting, authentication bypass)
-- **Full paths of source file(s) related to the vulnerability**
-- **The location of the affected source code (tag/branch/commit or direct URL)**
+Use the repository's "Security" tab → "Report a vulnerability" to reach the
+maintainers privately. Where possible, include:
+- **Type of issue** (injection, XSS, auth bypass, etc.)
+- **Affected source file(s)** and location (branch/commit or direct URL)
 - **Any special configuration required to reproduce the issue**
 - **Step-by-step instructions to reproduce the issue**
-- **Proof-of-concept or exploit code (if possible)**
+- **Proof-of-concept (if possible)**
 - **Impact of the issue, including how an attacker might exploit it**
 
 ### 3. What to expect
-This is a small, part-time project. We will acknowledge reports and work on fixes as time allows, and coordinate public disclosure with the reporter once a fix is available.
+This is a small open-source project — there is no dedicated security team or
+guaranteed response SLA. We will acknowledge reports as quickly as we can,
+fix confirmed issues, and credit reporters (with permission) once a fix ships.
 
-## Scope
+## Security Measures in the Codebase
 
-VladChain is an experimental blockchain demonstration. It is **not** production-grade financial infrastructure:
-- Do not use it to secure real funds or sensitive data.
-- The consensus, cryptography, and networking code have **not** been externally audited.
-- There are no uptime, monitoring, or patch-cadence guarantees.
+What is actually implemented today:
 
-## Security Practices in This Codebase
+- **Input validation** on transaction and account API endpoints
+- **Faucet rate limiting** (cooldown plus daily caps) to prevent abuse
+- **Parameterized SQL queries** via better-sqlite3
+- **Secrets kept in environment variables**, never committed to the repository
+- **Admin endpoints protected** by authentication
+- **No real funds at risk** — wallets and balances are simulated
 
-- **Hashing**: SHA-256 is used for block integrity.
-- **Input validation**: API inputs are validated on the server.
-- **Dependencies**: Dependencies are updated on a best-effort basis.
-- **Secrets**: Credentials are kept out of the repository and managed via environment secrets.
+## Scope Notes
+
+- VladChain is **not** production-grade financial infrastructure: do not use it
+  to secure real funds or sensitive data. The code has not been externally
+  audited, and there are no uptime, monitoring, or patch-cadence guarantees.
+- Simulated wallet mnemonics are stored server-side for the demo. Do not reuse
+  them anywhere real.
+- The AI validators are LLM-driven personas; their output is displayed content,
+  not a consensus security mechanism.
 
 ## Responsible Disclosure
 
 We follow responsible disclosure practices:
 1. **Private Reporting**: Vulnerabilities reported privately via GitHub Security Advisories
-2. **Collaborative Fix**: We work with reporters on solutions
-3. **Public Credit**: Contributors acknowledged with their permission
-4. **No Legal Action**: Good-faith security research is welcome
+2. **Collaborative Fix**: Work with reporters on solutions
+3. **Public Credit**: Acknowledge contributors (with permission)
+4. **No Legal Action**: Good faith security research is welcome
 
 ## Contact
 
@@ -49,4 +61,5 @@ We follow responsible disclosure practices:
 
 ## Acknowledgments
 
-We thank the security researchers and community members who help keep VladChain secure through responsible disclosure and security research.
+We thank the security researchers and community members who help keep
+VladChain secure through responsible disclosure and security research.
